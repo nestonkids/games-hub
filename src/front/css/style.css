@@ -1,0 +1,108 @@
+:root {
+  --pink: #ff8fb3; --orange: #ffb259; --yellow: #ffd84d; --green: #6fd6a0;
+  --blue: #6cb8ff; --purple: #b79cff; --ink: #5a4a6a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Zen Maru Gothic", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Meiryo", sans-serif;
+  color: var(--ink); background: #fff7fb;
+  background-image: radial-gradient(#ffe3ef 2px, transparent 2px); background-size: 24px 24px; }
+
+/* ヘッダー：にじ色のグラデーションとふわふわの雲 */
+.site-header { position: relative; text-align: center; color: #fff; padding: 40px 16px 64px;
+  background: linear-gradient(120deg, var(--pink), var(--orange) 35%, var(--green) 65%, var(--blue)); }
+.site-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 28px;
+  background: radial-gradient(circle at 20px 28px, #fff7fb 20px, transparent 21px) 0 0 / 40px 28px repeat-x; }
+.site-header h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 6vw, 2.8rem); letter-spacing: .04em;
+  text-shadow: 0 3px 0 rgba(0,0,0,.15); }
+.site-header h1::before { content: "🎮 "; }
+.site-header h1::after { content: " ⭐"; }
+.site-header p { margin: 0; font-size: 1.1rem; font-weight: bold; text-shadow: 0 2px 0 rgba(0,0,0,.12); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 32px; }
+.game-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* カード：まるくて、カードごとに色がちがう */
+.card { --c: var(--pink); background: #fff; border: 4px solid var(--c); border-radius: 24px; overflow: hidden;
+  box-shadow: 0 6px 0 var(--c); display: flex; flex-direction: column; height: 100%;
+  transition: transform .15s; }
+.card:nth-child(6n+2) { --c: var(--orange); }
+.card:nth-child(6n+3) { --c: var(--green); }
+.card:nth-child(6n+4) { --c: var(--blue); }
+.card:nth-child(6n+5) { --c: var(--purple); }
+.card:nth-child(6n+6) { --c: var(--yellow); }
+.card:hover { transform: translateY(-6px) rotate(-1deg); }
+.card:active { transform: translateY(2px); }
+.card-button { all: unset; cursor: pointer; display: flex; flex-direction: column; flex: 1; }
+.card-button:focus-visible { outline: 4px solid var(--ink); outline-offset: -4px; }
+.card-thumb { aspect-ratio: 4 / 3; background: color-mix(in srgb, var(--c) 30%, #fff); object-fit: cover; width: 100%; display: block; }
+.card-body { padding: 12px 16px 18px; }
+.card-title { margin: 0 0 4px; font-size: 1.2rem; }
+.card-author { display: inline-block; margin: 0 0 8px; padding: 2px 10px; font-size: .8rem; font-weight: bold;
+  color: #fff; background: var(--c); border-radius: 999px; }
+.card-desc { margin: 0; font-size: .9rem; line-height: 1.6; }
+
+.site-footer { display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 24px; font-size: .85rem; color: var(--ink); }
+.footer-logo { height: 20px; width: auto; }
+
+/* モーダル（全画面） */
+.modal { position: fixed; inset: 0; z-index: 100; background: #111; display: flex; flex-direction: column; }
+.modal[hidden] { display: none; }
+/* バーは常に画面の上に表示する。一覧ページのヘッダーと同じにじ色グラデーション */
+.modal-bar { flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 0 rgba(0, 0, 0, .15);
+  background: linear-gradient(120deg, var(--pink), var(--orange) 35%, var(--green) 65%, var(--blue)); }
+.modal-bar .modal-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.modal-bar #modal-title { color: #fff; font-weight: bold; font-size: 1.05rem;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-bar #modal-author { color: rgba(255, 255, 255, .9); font-size: .8rem; font-weight: bold;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-bar button { flex: none; font: inherit; font-weight: bold; font-size: .85rem; padding: 6px 14px;
+  color: var(--ink); background: #fff; border: 0; border-radius: 999px; cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .15); transition: transform .1s; }
+.modal-bar button:hover { transform: translateY(-1px); }
+.modal-bar button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .15); }
+.modal-body { flex: 1; min-height: 0; display: flex; }
+.desc-text { margin: 0 0 16px; max-height: 50vh; overflow-y: auto; font-size: .95rem; line-height: 1.7; white-space: pre-wrap; }
+.modal-body iframe { flex: 1; width: 100%; height: 100%; border: 0; background: #000; }
+body.modal-open { overflow: hidden; }
+
+/* いいね・コメントのボタン */
+.card-actions { display: flex; gap: 8px; padding: 0 16px 14px; }
+.action-btn { font: inherit; font-size: .9rem; font-weight: bold; color: var(--ink); background: #fff;
+  border: 2px solid var(--c); border-radius: 999px; padding: 4px 14px; cursor: pointer; }
+.action-btn:hover { background: color-mix(in srgb, var(--c) 18%, #fff); }
+.action-btn:disabled { opacity: .6; cursor: wait; }
+.action-btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* コメントのダイアログ */
+.comment-dialog { position: relative; width: min(520px, calc(100vw - 32px)); max-height: 90vh; border: 4px solid var(--pink);
+  border-radius: 24px; padding: 20px; color: var(--ink); background: #fff; font-family: inherit; }
+.comment-dialog::backdrop { background: rgba(60, 40, 80, .5); }
+.dialog-close-x { position: absolute; top: 10px; right: 14px; width: 32px; height: 32px; line-height: 32px;
+  text-align: center; padding: 0; font-size: 1.3rem; font-weight: bold; color: #fff; background: var(--purple);
+  border: 0; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 0 rgba(0, 0, 0, .15); }
+.dialog-close-x:hover { background: var(--pink); }
+.comment-dialog h2 { margin: 0 0 12px; font-size: 1.2rem; }
+.comment-list { list-style: none; margin: 0 0 16px; padding: 0; max-height: 40vh; overflow-y: auto; }
+.comment-item { padding: 8px 0; border-bottom: 1px dashed var(--pink); }
+.comment-head { display: flex; align-items: center; gap: 6px; }
+.comment-icon { font-size: 1.1rem; }
+.comment-name { font-size: .85rem; }
+.comment-body { margin: 2px 0 0; font-size: .95rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-empty { font-size: .9rem; }
+.comment-form label { display: block; margin-bottom: 10px; font-size: .9rem; font-weight: bold; }
+.comment-form input, .comment-form textarea { display: block; width: 100%; margin-top: 4px; padding: 8px;
+  font: inherit; border: 2px solid var(--purple); border-radius: 12px; }
+.comment-note { margin: 10px 0; font-size: .85rem; line-height: 1.8; }
+.comment-note rt { font-size: .6em; }
+.comment-msg { min-height: 1.4em; margin: 0 0 8px; font-size: .9rem; font-weight: bold; }
+.comment-buttons { display: flex; gap: 8px; justify-content: flex-end; }
+.comment-buttons button { font: inherit; font-weight: bold; padding: 6px 18px; border: 0; border-radius: 999px;
+  color: #fff; background: var(--pink); cursor: pointer; }
+.comment-buttons button[type=button] { background: var(--purple); }
+
+/* 試用モードの案内 */
+.demo-note { max-width: 1100px; margin: 12px auto 0; padding: 8px 16px; font-size: .85rem; font-weight: bold;
+  color: var(--ink); background: var(--yellow); border-radius: 12px; text-align: center; }

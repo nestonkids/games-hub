@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Hiragino Maru Gothic ProN", "Meiryo", sans-serif; color: #3d3350; background: #f6f3fa; }
+.bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; color: #fff; background: #7a5cc8; }
+.bar h1 { margin: 0; font-size: 1.1rem; }
+main { max-width: 900px; margin: 0 auto; padding: 16px; }
+.panel { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.panel[hidden], [hidden] { display: none !important; }
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.tabs button.active { background: #7a5cc8; color: #fff; }
+button { font: inherit; padding: 6px 14px; border: 1px solid #7a5cc8; border-radius: 8px; color: #7a5cc8; background: #fff; cursor: pointer; }
+button.danger { color: #c0392b; border-color: #c0392b; }
+button.primary { color: #fff; background: #7a5cc8; }
+button:disabled { opacity: .5; cursor: wait; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+label { display: block; margin-bottom: 10px; font-size: .9rem; font-weight: bold; }
+label.inline { display: flex; gap: 6px; align-items: center; }
+input:not([type=checkbox]):not([type=radio]), textarea, select { display: block; width: 100%; margin-top: 4px; padding: 8px; font: inherit; border: 1px solid #b9aed6; border-radius: 8px; }
+.row label { margin: 0; font-weight: normal; }
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+.items .main { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.items .meta { font-size: .8rem; color: #7b708f; }
+.items .btns { display: flex; gap: 6px; }
+.game-form { margin: 12px 0; padding: 12px; background: #f6f3fa; border-radius: 8px; }
+.game-form h3 { margin: 0 0 8px; }
+.status { min-height: 1.4em; font-weight: bold; }
+.tag-hidden { color: #c0392b; font-size: .8rem; }
+.comment-status { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 8px; font-size: .75rem; font-weight: bold; }
+.comment-status.pending { color: #a9720a; background: #fbead0; }
+.comment-status.approved { color: #2e8b57; background: #e2f3e8; }
+.game-comments { flex: 1 1 100%; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #d8d0ea; }
+.game-comments .items li { padding: 6px 0; }

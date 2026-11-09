@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NESTON Games Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>NESTON Games Hub</h1>
+  </header>
+
+  <main>
+    <ul id="game-list" class="game-list" aria-live="polite"></ul>
+  </main>
+
+  <!-- ゲームを開くモーダル（iframeは開くたびに作り、閉じたら削除する） -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-bar">
+      <button id="modal-close" type="button">← もどる</button>
+      <div class="modal-info">
+        <span id="modal-title"></span>
+        <span id="modal-author"></span>
+      </div>
+      <button id="modal-desc" type="button">📖 せつめい</button>
+      <button id="modal-comment" type="button">💬 コメント</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+
+  <!-- 説明のダイアログ -->
+  <dialog id="desc-dialog" class="comment-dialog">
+    <button type="button" id="desc-close-x" class="dialog-close-x" aria-label="閉じる">×</button>
+    <h2 id="desc-title"></h2>
+    <p id="desc-text" class="desc-text"></p>
+    <div class="comment-buttons">
+      <button type="button" id="desc-close">とじる</button>
+    </div>
+  </dialog>
+
+  <!-- コメントのダイアログ -->
+  <dialog id="comment-dialog" class="comment-dialog">
+    <button type="button" id="comment-close-x" class="dialog-close-x" aria-label="閉じる">×</button>
+    <h2 id="comment-title"></h2>
+    <ul id="comment-list" class="comment-list"></ul>
+    <form id="comment-form" class="comment-form">
+      <label>ニックネーム <input name="nickname" maxlength="20" required></label>
+      <label>コメント <textarea name="body" maxlength="200" rows="3" required></textarea></label>
+      <p class="comment-note">コメントは<ruby>先生<rt>せんせい</rt></ruby>が<ruby>確認<rt>かくにん</rt></ruby>してから<ruby>表示<rt>ひょうじ</rt></ruby>されます。<ruby>本名<rt>ほんみょう</rt></ruby>・<ruby>住所<rt>じゅうしょ</rt></ruby>・<ruby>学校名<rt>がっこうめい</rt></ruby>などは<ruby>書<rt>か</rt></ruby>かないでね。</p>
+      <p id="comment-msg" class="comment-msg" aria-live="polite"></p>
+      <div class="comment-buttons">
+        <button type="button" id="comment-close">とじる</button>
+        <button type="submit">おくる</button>
+      </div>
+    </form>
+    <p id="comment-thanks" class="comment-note" hidden>ありがとう！<ruby>先生<rt>せんせい</rt></ruby>が<ruby>確認<rt>かくにん</rt></ruby>したあとに<ruby>表示<rt>ひょうじ</rt></ruby>されるよ</p>
+  </dialog>
+
+  <footer class="site-footer">
+    <img src="assets/img/neston-logo.svg" alt="NESTON Kids STEAM School" class="footer-logo">
+    © NESTON Kids STEAM School
+  </footer>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
