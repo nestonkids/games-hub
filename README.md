@@ -4,7 +4,22 @@
 
 仕様・アーキテクチャの詳細は `SPEC.md` を参照。AIエージェント向けの注意点(承認が必要な操作・コーディング規約)は `AGENTS.md` を参照。
 
-## 構成
+## 使い方
+### 公開ポータル(front)
+- URL: https://nestonkids.github.io/games-hub/
+- 誰でも閲覧できる。ゲームのカードをクリックするとモーダルで開いて遊べる。
+- カード下の「💬」ボタンからコメントを書ける。投稿したコメントは「承認待ち」になり、管理画面で承認されるまでは自分以外には表示されない。
+- 一覧は投稿が新しい順に表示される(並び順の変更はできない)。
+
+### 管理画面(admin)
+- URL: https://neston-games-hub-admin.pages.dev/
+- Cloudflare Access(Zero Trust)で保護されている。`@nestonkids.com` のメールアドレスでアクセスし、メールに届く**One-time PIN**(確認コード)を入力してログインする。
+- **ゲームの追加・編集**: 「＋ ゲームを追加」(または各ゲームの「編集」)からモーダルを開き、ゲームのURL・タイトル・作者・説明・サムネイルURLを入力して保存する。URLを入れた状態で「ゲーム情報を取得」を押すと、Scratch/TurboWarpの作品ならそちらから、それ以外のURLなら直下の`game.json`からタイトル・作者・サムネイルを自動入力できる。
+- **非公開/公開の切り替え・削除**: 各ゲームの操作ボタンから行う。
+- **コメントの承認**: 「コメント」タブ(または各ゲームの「💬 コメント」ボタン)で、承認待ち/公開中のコメントを確認し、承認・非公開化・削除ができる。
+
+## 開発
+### 構成
 - `src/front/` … 公開ポータル本体(GitHub Actionsで GitHub Pages に公開)
   - `index.html` / `css/style.css` / `js/app.js` / `js/config.js`
   - `assets/thumbs/` … サムネイル画像を置く場所(管理画面でサムネイルURLに相対パス`assets/thumbs/xxx.png`を指定した場合用。4:3推奨)
@@ -17,22 +32,19 @@
 - `worker/schema.sql` … D1データベース(`games` / `comments`)のテーブル定義
 - `sample-web-game/` … 生徒がAIエージェントと一緒にゲームを作るときのルール(`AGENTS.md`)
 
-## ゲームの追加
-**管理画面から追加する**(URL・タイトル・作者・説明・サムネイルURLを入力して保存するだけ)。Scratch / TurboWarpの共有URLを入力すると、種類と作品IDを自動判定する。詳しくは「運用」節を参照。
-
-## 起動方式
+### 起動方式
 `src/front/js/app.js` の `launchMode` 定数で固定(現在は `"modal"`)。切り替える場合はコードを直接編集する:
 - `"modal"` … 全画面モーダル内にiframeを動的生成(閉じると削除)
 - `"tab"` … 別タブで開く(トラブルが最も少ない)
 
-## ローカル確認
+### ローカル確認
 - `src/front/`・`src/admin/` は `fetch` を使うため、`python -m http.server` などで起動して開くこと。
 - Workerは `worker/front/`・`worker/admin/` それぞれで `npx wrangler dev` を実行する。D1を使う機能を確認する場合は、先にローカルDBへスキーマを当てる:
   ```powershell
   npx wrangler d1 execute neston-games-hub-db --local --persist-to ../.wrangler/state --file=../schema.sql
   ```
 
-## 初回セットアップ(まだ存在しない環境を作る場合)
+### 初回セットアップ(まだ存在しない環境を作る場合)
 ```powershell
 npx wrangler login
 
@@ -48,7 +60,7 @@ npx wrangler d1 execute neston-games-hub-db --remote --file=schema.sql
 5. `src/admin/wrangler.toml` の `[[services]]` の `service` に、`worker/admin` のWorker名(`name`)が入っていることを確認する。
 6. 管理画面(Cloudflare Pages)をデプロイし、Cloudflare Access(Zero Trust)で保護する(「管理画面の公開先・保護」を参照)。
 
-## デプロイ
+### デプロイ
 このリポジトリには4つの独立したデプロイ対象がある。**変更したものだけ**デプロイすればよい(他の3つには影響しない)。リポジトリ直下から実行する場合のコマンド:
 
 | 対象 | コマンド | トリガー |
@@ -62,12 +74,7 @@ npx wrangler d1 execute neston-games-hub-db --remote --file=schema.sql
 - `wrangler deploy` がCloudflare側の一時的なエラー(例: 「binding DB of type d1 failed to generate」)で失敗することがある。設定(`wrangler.toml`)が正しいことを確認した上で、少し待って再試行すると直ることが多い。
 - D1のスキーマを変更した場合は、両方のWorkerが同じデータベースを参照しているため、デプロイ前に一度だけ本番DBに対して `wrangler d1 execute neston-games-hub-db --remote --command "..."` でマイグレーションを実行する。
 
-## 運用
-- コメントは**承認制**。投稿は「承認待ち」になり、管理画面の「コメント」タブ(または各ゲームの「💬 コメント」ボタン)で承認すると公開される。
-- ゲームの追加・編集・非表示は管理画面から行う。表示順は投稿日時の新しい順で固定。
-- ゲームのURLを入力して「ゲーム情報を取得」を押すと、Scratch/TurboWarpの作品ならそちらのAPIから、それ以外のURLなら直下の `game.json`(`sample-web-game/AGENTS.md` 参照)からタイトル・作者・サムネイルを自動入力できる。
-
-## 管理画面の公開先・保護(Cloudflare Pages + Zero Trust)
+### 管理画面の公開先・保護(Cloudflare Pages + Zero Trust)
 - 管理画面URL: `https://neston-games-hub-admin.pages.dev/`
 - Cloudflare Pagesプロジェクト名: `neston-games-hub-admin`(`*.pages.dev` のドメイン名はプロジェクト名で決まり、後から変更できないので注意)
 - Zero Trust team名: `nestonkids`(`nestonkids.cloudflareaccess.com`)
