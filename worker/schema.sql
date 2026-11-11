@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS games (
   type        TEXT NOT NULL DEFAULT '',      -- '' / 'scratch' / 'turbowarp'
   scratch_id  TEXT NOT NULL DEFAULT '',
   url         TEXT NOT NULL DEFAULT '',
-  sort_order  INTEGER NOT NULL DEFAULT 0,
   visible     INTEGER NOT NULL DEFAULT 1,
   created_at  INTEGER NOT NULL
 );

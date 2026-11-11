@@ -45,7 +45,7 @@ async function listGames(env) {
   const { results } = await env.DB.prepare(
     `SELECT g.*,
        (SELECT COUNT(*) FROM comments c WHERE c.game_id = g.id AND c.status = 'approved') AS comments
-     FROM games g WHERE g.visible = 1 ORDER BY g.sort_order, g.created_at`
+     FROM games g WHERE g.visible = 1 ORDER BY g.created_at DESC`
   ).all();
   return json({ games: results.map((r) => ({ ...toGame(r), comments: r.comments })) });
 }

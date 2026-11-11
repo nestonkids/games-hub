@@ -121,7 +121,7 @@ function renderGames() {
   const list = $('game-list');
   list.replaceChildren();
   if (!games.length) list.appendChild(el('li', 'ゲームがありません。「＋ ゲームを追加」から登録してください。'));
-  games.forEach((g, i) => {
+  games.forEach((g) => {
     const li = document.createElement('li');
     const main = el('div', null, 'main');
     const title = el('div', g.title + '(' + g.id + ') ');
@@ -137,8 +137,6 @@ function renderGames() {
 
     const btns = el('div', null, 'btns');
     btns.append(
-      btn('↑', () => move(i, -1)),
-      btn('↓', () => move(i, 1)),
       btn(g.visible ? '非公開にする' : '公開する', async () => {
         await api('/api/admin/games/' + g.id, 'PUT', { ...g, url: gameUrl(g), visible: !g.visible });
         loadGames();
@@ -158,14 +156,6 @@ function renderGames() {
     li.append(thumb, main, btns);
     list.appendChild(li);
   });
-}
-
-async function move(i, d) {
-  const j = i + d;
-  if (j < 0 || j >= games.length) return;
-  [games[i], games[j]] = [games[j], games[i]];
-  await api('/api/admin/games/reorder', 'POST', { ids: games.map((g) => g.id) });
-  renderGames();
 }
 
 const form = $('game-form');

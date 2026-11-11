@@ -33,7 +33,6 @@ async function route(request, env) {
   if (parts[2] === 'games') {
     if (parts.length === 3 && m === 'GET') return adminListGames(env);
     if (parts.length === 3 && m === 'POST') return adminSaveGame(request, env, null);
-    if (parts.length === 4 && parts[3] === 'reorder' && m === 'POST') return adminReorder(request, env);
     if (parts.length === 4 && m === 'PUT') return adminSaveGame(request, env, parts[3]);
     if (parts.length === 4 && m === 'DELETE') return adminDeleteGame(env, parts[3]);
   }
@@ -51,7 +50,7 @@ async function route(request, env) {
 // ---------- ゲーム ----------
 async function adminListGames(env) {
   const { results } = await env.DB.prepare(
-    `SELECT g.* FROM games g ORDER BY g.sort_order, g.created_at`
+    `SELECT g.* FROM games g ORDER BY g.created_at DESC`
   ).all();
   return json({ games: results.map((r) => ({ ...toGame(r), visible: !!r.visible })) });
 }
@@ -68,12 +67,10 @@ async function adminSaveGame(request, env, existingId) {
   }
   const dup = await env.DB.prepare('SELECT 1 FROM games WHERE id = ?').bind(g.id).first();
   if (dup) throw new HttpError(409, 'このIDはすでに使われています');
-  // 新しいゲームが一覧の先頭に来るよう、既存の最小値より小さいsort_orderを入れる
-  const min = await env.DB.prepare('SELECT COALESCE(MIN(sort_order), 1) AS m FROM games').first();
   await env.DB.prepare(
-    `INSERT INTO games (id, title, author, description, thumbnail, type, scratch_id, url, sort_order, visible, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(g.id, g.title, g.author, g.description, g.thumbnail, g.type, g.scratchId, g.url, min.m - 1, g.visible, now()).run();
+    `INSERT INTO games (id, title, author, description, thumbnail, type, scratch_id, url, visible, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(g.id, g.title, g.author, g.description, g.thumbnail, g.type, g.scratchId, g.url, g.visible, now()).run();
   return json({ ok: true }, 201);
 }
 
@@ -82,13 +79,6 @@ async function adminDeleteGame(env, id) {
     env.DB.prepare('DELETE FROM comments WHERE game_id = ?').bind(id),
     env.DB.prepare('DELETE FROM games WHERE id = ?').bind(id),
   ]);
-  return json({ ok: true });
-}
-
-async function adminReorder(request, env) {
-  const body = await readJson(request);
-  if (!Array.isArray(body.ids) || body.ids.length > 500) throw new HttpError(400, 'ids が正しくありません');
-  await env.DB.batch(body.ids.map((id, i) => env.DB.prepare('UPDATE games SET sort_order = ? WHERE id = ?').bind(i + 1, String(id))));
   return json({ ok: true });
 }
 
