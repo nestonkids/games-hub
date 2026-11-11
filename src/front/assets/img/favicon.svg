@@ -1,13 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#ff8fb3"/>
-  <!-- ゲームコントローラーを簡略化したシルエット(中央寄せ・マージン小さめ) -->
-  <circle cx="16" cy="32" r="13" fill="#fff"/>
-  <circle cx="48" cy="32" r="13" fill="#fff"/>
-  <rect x="9" y="22" width="46" height="20" rx="10" fill="#fff"/>
-  <rect x="13" y="25" width="6" height="14" rx="1.5" fill="#ff8fb3"/>
-  <rect x="9" y="29" width="14" height="6" rx="1.5" fill="#ff8fb3"/>
-  <circle cx="48" cy="25" r="3" fill="#ff8fb3"/>
-  <circle cx="48" cy="39" r="3" fill="#ff8fb3"/>
-  <circle cx="41" cy="32" r="3" fill="#ff8fb3"/>
-  <circle cx="55" cy="32" r="3" fill="#ff8fb3"/>
+  <rect width="64" height="64" rx="10" fill="#ff8fb3"/>
+  <!-- ゲームコントローラーを簡略化したシルエット(長方形ボディ、十字キー・ボタン大きめ) -->
+  <rect x="6" y="18" width="52" height="28" rx="6" fill="#fff"/>
+  <rect x="17" y="22" width="6" height="20" rx="2" fill="#e0557e"/>
+  <rect x="10" y="29" width="20" height="6" rx="2" fill="#e0557e"/>
+  <circle cx="37" cy="36" r="6" fill="#e0557e"/>
+  <circle cx="51" cy="36" r="6" fill="#e0557e"/>
 </svg>
