@@ -288,7 +288,8 @@ function openModal(game) {
   const iframe = document.createElement('iframe');
   iframe.src = embedUrl(game);
   iframe.title = game.title;
-  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+  // allow-pointer-lock: マウスを動かし続けて視点やキャラクターを操作するゲーム用(Pointer Lock APIを使う)
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock');
   iframe.setAttribute('allow', 'autoplay; fullscreen');
   modalTitle.textContent = game.title;
   modalAuthor.textContent = 'つくった人: ' + (game.author || 'つくった人なし');
