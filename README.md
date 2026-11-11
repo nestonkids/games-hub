@@ -1,70 +1,76 @@
 # NESTON Games Hub
 
-生徒が作ったWebゲームを集めるポータルサイト（GitHub Pages）。
+生徒が作ったWebゲームを集めるポータルサイト。公開ポータルはGitHub Pages、管理画面・APIはCloudflare(Pages/Workers/D1/Access)で動く。
+
+仕様・アーキテクチャの詳細は `SPEC.md` を参照。AIエージェント向けの注意点(承認が必要な操作・コーディング規約)は `AGENTS.md` を参照。
 
 ## 構成
-仕様は `SPEC.md` を参照。ソースは `src/` 以下で、公開ポータルと管理画面でディレクトリを分けている(管理画面がGitHub Pages側に漏れないようにするため)。
-
 - `src/front/` … 公開ポータル本体(GitHub Actionsで GitHub Pages に公開)
   - `index.html` / `css/style.css` / `js/app.js` / `js/config.js`
-  - `games.json` … 作品リスト。ゲームを追加するときはここに1件足す
-  - `assets/thumbs/` … サムネイル画像（4:3推奨）
+  - `assets/thumbs/` … サムネイル画像を置く場所(管理画面でサムネイルURLに相対パス`assets/thumbs/xxx.png`を指定した場合用。4:3推奨)
 - `src/admin/` … 管理画面(Cloudflare Pagesにのみデプロイ。GitHub Pagesには公開しない)
-  - `index.html` / `css/admin.css` / `js/admin.js` / `js/config.js`(front側と別管理。値を変えたら両方直す)
-- `src/student-template/` … 生徒用スターターテンプレート（別リポジトリとして「Template repository」に設定する）
+  - `index.html` / `css/admin.css` / `js/admin.js` / `js/config.js`
+  - `functions/api/[[path]].js` … Pages Functions。Service Binding経由で管理APIに中継する
+  - `wrangler.toml`
+- `worker/front/` … 公開側API(Cloudflare Workers)。ゲーム一覧配信・コメント投稿、認証なし
+- `worker/admin/` … 管理側API(Cloudflare Workers)。ゲーム編集・コメント承認。Cloudflare Accessで保護
+- `worker/schema.sql` … D1データベース(`games` / `comments`)のテーブル定義
+- `sample-web-game/` … 生徒がAIエージェントと一緒にゲームを作るときのルール(`AGENTS.md`)
 
 ## ゲームの追加
-`games.json` の `games` に追加:
-```json
-{ "id": "invader", "title": "...", "author": "...", "description": "...",
-  "thumbnail": "assets/thumbs/invader.png", "url": "https://<org>.github.io/<repo>/" }
-```
-
-Scratch / TurboWarp の作品は `url` の代わりに `"type": "scratch"`（または `"turbowarp"`）と `"scratchId": "作品ID"` を書く。共有済みの作品のみ表示できる。
+**管理画面から追加する**(URL・タイトル・作者・説明・サムネイルURLを入力して保存するだけ)。Scratch / TurboWarpの共有URLを入力すると、種類と作品IDを自動判定する。詳しくは「運用」節を参照。
 
 ## 起動方式
-`games.json` の `config.launchMode` で切替:
-- `"modal"` … 全画面モーダル内にiframeを動的生成（閉じると削除）
-- `"tab"` … 別タブで開く（トラブルが最も少ない）
+`src/front/js/app.js` の `launchMode` 定数で固定(現在は `"modal"`)。切り替える場合はコードを直接編集する:
+- `"modal"` … 全画面モーダル内にiframeを動的生成(閉じると削除)
+- `"tab"` … 別タブで開く(トラブルが最も少ない)
 
 ## ローカル確認
-`fetch` を使うため、`python -m http.server` などを実行して開くこと。ポータルは `src/front/` で、管理画面は `src/admin/` でそれぞれ起動する。
+- `src/front/`・`src/admin/` は `fetch` を使うため、`python -m http.server` などで起動して開くこと。
+- Workerは `worker/front/`・`worker/admin/` それぞれで `npx wrangler dev` を実行する。D1を使う機能を確認する場合は、先にローカルDBへスキーマを当てる:
+  ```powershell
+  npx wrangler d1 execute neston-games-hub-db --local --persist-to ../.wrangler/state --file=../schema.sql
+  ```
 
-## いいね・コメント・管理画面(Cloudflare)
-`worker/` が API(Cloudflare Workers + D1)。ポータルと管理画面はこの API を呼ぶ。`js/config.js` の `apiBase` が空なら従来どおり `games.json` だけで動く(front側・admin側それぞれの `js/config.js` を直すこと)。
-
-### セットアップ(初回のみ。`worker/` で実行)
+## 初回セットアップ(まだ存在しない環境を作る場合)
 ```powershell
 npx wrangler login
-npx wrangler d1 execute neston-hub-db --remote --file=schema.sql   # テーブル作成
-npx wrangler secret put ADMIN_PASSWORD   # 管理画面のパスワード
-npx wrangler secret put TOKEN_SECRET     # 32文字以上のランダムな文字列
-npx wrangler deploy                      # 表示された workers.dev のURLを控える
+
+# D1データベースを作成してスキーマを当てる
+cd worker
+npx wrangler d1 create neston-games-hub-db
+npx wrangler d1 execute neston-games-hub-db --remote --file=schema.sql
 ```
-1. `wrangler.toml` の `ALLOWED_ORIGINS` に、ポータルの公開URL(`https://<org>.github.io` など、パスなし)と管理画面のURL(Cloudflare PagesのURL)を入れて再度 `deploy`
-2. `src/front/js/config.js` と `src/admin/js/config.js` の両方の `apiBase` に workers.dev のURLを入れて、ポータル・管理画面をそれぞれ公開(詳しくは後述の「管理画面の公開先・保護」を参照)
-3. 管理画面(Cloudflare PagesのURL)を開き、ログイン →「ゲーム」タブの「games.json から取り込む」
+1. `worker/front/wrangler.toml` と `worker/admin/wrangler.toml` の `[[d1_databases]]` に、作成したD1の `database_id` を入れる。
+2. 両方の `wrangler.toml` の `[vars] ALLOWED_ORIGINS` に、ポータルの公開URL(GitHub PagesのURL)と管理画面のURL(Cloudflare PagesのURL)を入れる。
+3. 両方のWorkerをデプロイ(次節「デプロイ」参照)し、表示された `workers.dev` のURLを控える。
+4. `src/front/js/config.js` の `apiBase` に `worker/front` のURLを入れる。`src/admin/js/config.js` の `apiBase` は空文字のままにする(Pages Functions経由で呼ぶため、変更不要)。
+5. `src/admin/wrangler.toml` の `[[services]]` の `service` に、`worker/admin` のWorker名(`name`)が入っていることを確認する。
+6. 管理画面(Cloudflare Pages)をデプロイし、Cloudflare Access(Zero Trust)で保護する(「管理画面の公開先・保護」を参照)。
 
-### 運用
-- コメントは**承認制**。投稿は「承認待ち」になり、管理画面の「コメント」タブで承認すると公開される
-- ゲームの追加・編集・非表示・並び替えは管理画面から(API利用時、表示の元データは D1。`games.json` は初回取り込みとAPI停止時の予備)
-- パスワード変更は `npx wrangler secret put ADMIN_PASSWORD` をやり直す
+## デプロイ
+このリポジトリには4つの独立したデプロイ対象がある。**変更したものだけ**デプロイすればよい(他の3つには影響しない)。リポジトリ直下から実行する場合のコマンド:
 
-### 公開の全体像
-- **公開ポータル**: `src/front/` を GitHub Actions(`.github/workflows/pages.yml`)で GitHub Pages に公開。`src/front/**` が変わるたびに自動デプロイされる(誰でも閲覧可・保護なし)
-- **管理画面**: `src/admin/` を Cloudflare Pages にデプロイし、Cloudflare Access(Zero Trust)で保護。管理画面自体がGitHub Pages側には一切含まれないため、公開URLから推測されても到達できない
+| 対象 | コマンド | トリガー |
+|---|---|---|
+| `worker/front`(公開API) | `cd worker/front; npx wrangler deploy` | 手動 |
+| `worker/admin`(管理API) | `cd worker/admin; npx wrangler deploy` | 手動 |
+| `src/admin`(管理画面, Cloudflare Pages) | `cd src/admin; npx wrangler pages deploy . --project-name neston-games-hub-admin --commit-dirty=true` | 手動 |
+| `src/front`(公開ポータル, GitHub Pages) | `git push origin main` | pushで `.github/workflows/pages.yml` が自動デプロイ(`src/front/**` 以外の変更でも全体がpushされれば動く) |
 
-### 管理画面の公開先・保護(Cloudflare Pages + Zero Trust)
+補足:
+- `wrangler deploy` がCloudflare側の一時的なエラー(例: 「binding DB of type d1 failed to generate」)で失敗することがある。設定(`wrangler.toml`)が正しいことを確認した上で、少し待って再試行すると直ることが多い。
+- D1のスキーマを変更した場合は、両方のWorkerが同じデータベースを参照しているため、デプロイ前に一度だけ本番DBに対して `wrangler d1 execute neston-games-hub-db --remote --command "..."` でマイグレーションを実行する。
+
+## 運用
+- コメントは**承認制**。投稿は「承認待ち」になり、管理画面の「コメント」タブ(または各ゲームの「💬 コメント」ボタン)で承認すると公開される。
+- ゲームの追加・編集・非表示は管理画面から行う。表示順は投稿日時の新しい順で固定。
+- ゲームのURLを入力して「ゲーム情報を取得」を押すと、Scratch/TurboWarpの作品ならそちらのAPIから、それ以外のURLなら直下の `game.json`(`sample-web-game/AGENTS.md` 参照)からタイトル・作者・サムネイルを自動入力できる。
+
+## 管理画面の公開先・保護(Cloudflare Pages + Zero Trust)
 - 管理画面URL: `https://neston-games-hub-admin.pages.dev/`
 - Cloudflare Pagesプロジェクト名: `neston-games-hub-admin`(`*.pages.dev` のドメイン名はプロジェクト名で決まり、後から変更できないので注意)
 - Zero Trust team名: `nestonkids`(`nestonkids.cloudflareaccess.com`)
 - ログイン方法: **One-time PIN**(メールにコードが届く方式。Settings → Authentication → Login methods で有効化が必要)
-- Accessポリシー: `末尾が次のメール` = `@nestonkids.com` のみ許可
-
-デプロイ・更新コマンド(リポジトリ直下で実行):
-```powershell
-npx wrangler pages deploy src/admin --project-name=neston-games-hub-admin
-```
-`src/admin/` を更新したら、このコマンドで再デプロイすること。
-
-Worker側の `worker/wrangler.toml` の `ALLOWED_ORIGINS` にも、このCloudflare PagesのURLを含めておくこと(CORSで必要)。
+- Accessポリシー: 末尾が `@nestonkids.com` のメールのみ許可
+- 管理画面(Pages)と管理API(`worker/admin`)は別ドメインだが、`src/admin` がPages Functions + Service Binding経由で管理APIを同一オリジンとして中継するため、**ログインは管理画面側の1回だけ**で済む(詳しい仕組みは `SPEC.md` 2.3節)。管理API Workerの `workers.dev` URLを直接開いた場合は、そちらのAccessアプリケーションで別途ログインが必要。

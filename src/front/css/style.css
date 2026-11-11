@@ -107,7 +107,3 @@ body.modal-open { overflow: hidden; }
 .comment-buttons button { font: inherit; font-weight: bold; padding: 6px 18px; border: 0; border-radius: 999px;
   color: #fff; background: var(--pink); cursor: pointer; }
 .comment-buttons button[type=button] { background: var(--purple); }
-
-/* 試用モードの案内 */
-.demo-note { max-width: 1100px; margin: 12px auto 0; padding: 8px 16px; font-size: .85rem; font-weight: bold;
-  color: var(--ink); background: var(--yellow); border-radius: 12px; text-align: center; }

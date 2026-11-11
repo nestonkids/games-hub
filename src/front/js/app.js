@@ -1,4 +1,4 @@
-// games.json を読み込んで、ゲームカードを並べる
+// APIからゲーム一覧を読み込んで、ゲームカードを並べる
 const listEl = document.getElementById('game-list');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -7,32 +7,18 @@ const modalBody = document.getElementById('modal-body');
 const descDialog = document.getElementById('desc-dialog');
 const descTitle = document.getElementById('desc-title');
 const descText = document.getElementById('desc-text');
-let launchMode = 'modal'; // 'modal' = モーダルで開く / 'tab' = 別タブで開く
+const launchMode = 'modal'; // 'modal' = モーダルで開く / 'tab' = 別タブで開く
 
 const API = (window.HUB_CONFIG && window.HUB_CONFIG.apiBase || '').replace(/\/+$/, '');
 
-// ゲーム一覧: APIが使えればAPIから、だめなら games.json から読む(設定 launchMode は games.json から)
 loadGames().catch(() => { listEl.textContent = 'ゲーム一覧を読み込めませんでした。'; });
 
 async function loadGames() {
-  const data = await (await fetch('games.json')).json();
-  launchMode = (data.config && data.config.launchMode) || 'modal';
-  let games = data.games;
-  let fromApi = false;
-  if (API) {
-    try {
-      const res = await fetch(API + '/api/games');
-      if (res.ok) { games = (await res.json()).games; fromApi = true; }
-    } catch (e) { /* APIに繋がらないときは games.json のまま表示する */ }
-  }
-  // 試用モード: APIが使えないとき、コメントをこの端末だけに保存して動かす(config.js の offlineDemo)
-  if (!fromApi && window.HUB_CONFIG && window.HUB_CONFIG.offlineDemo) {
-    games = games.map(demoGame);
-    const note = textEl('p', 'demo-note', 'テスト表示中：コメントはこの端末だけに保存されます。');
-    listEl.before(note);
-  }
+  const res = await fetch(API + '/api/games');
+  if (!res.ok) throw new Error('ゲーム一覧を読み込めませんでした。');
+  const games = (await res.json()).games;
   games.forEach((game) => listEl.appendChild(createCard(game)));
-  if (fromApi) preloadComments(games); // コメントを開く前に裏で読み込んでおく(クリック時の待ち時間を減らす)
+  preloadComments(games); // コメントを開く前に裏で読み込んでおく(クリック時の待ち時間を減らす)
 }
 
 // 一覧表示後、ゲームを1件ずつ順番にバックグラウンド取得してキャッシュする(一斉に投げて負荷をかけないため)
@@ -52,18 +38,6 @@ async function fetchCommentsPage(gameId, beforeId) {
   let path = '/api/games/' + encodeURIComponent(gameId) + '/comments';
   if (beforeId) path += '?before=' + beforeId;
   return api(path); // { comments, hasMore }
-}
-
-// ---- 試用モード用の保存(localStorage) ----
-function demoStore() {
-  try { return JSON.parse(localStorage.getItem('hub_demo') || '{}'); } catch (e) { return {}; }
-}
-function demoSave(s) {
-  try { localStorage.setItem('hub_demo', JSON.stringify(s)); } catch (e) { /* 保存できない環境では何もしない */ }
-}
-function demoGame(g) {
-  const s = demoStore();
-  return { ...g, demo: true, comments: ((s.comments || {})[g.id] || []).length };
 }
 
 async function api(path, options) {
@@ -129,7 +103,7 @@ function createCard(game) {
 
   el.append(thumbWrap, body);
   li.appendChild(el);
-  if (game.comments !== undefined) li.appendChild(createActions(game)); // API経由のときだけ表示
+  li.appendChild(createActions(game));
   return li;
 }
 
@@ -169,7 +143,6 @@ async function openComments(game) {
   dlgForm.hidden = false;
   dlgThanks.hidden = true;
   dialog.showModal();
-  if (game.demo) { renderComments((demoStore().comments || {})[game.id] || []); return; }
   const cached = commentsCache.get(game.id);
   if (cached) {
     dlgState = { comments: cached.comments.slice(), hasMore: cached.hasMore, loading: false };
@@ -243,20 +216,6 @@ dlgForm.addEventListener('submit', async (e) => {
   const btn = dlgForm.querySelector('button[type=submit]');
   btn.disabled = true;
   dlgMsg.textContent = '';
-  if (dlgGame.demo) {
-    const s = demoStore();
-    s.comments = s.comments || {};
-    const list = s.comments[dlgGame.id] = s.comments[dlgGame.id] || [];
-    list.unshift({ nickname: dlgForm.nickname.value.trim().slice(0, 20), body: dlgForm.body.value.trim().slice(0, 200) });
-    demoSave(s);
-    dlgForm.body.value = '';
-    dlgGame.comments = list.length;
-    dlgGame.commentBtn.textContent = '💬 ' + list.length;
-    renderComments(list);
-    dlgMsg.textContent = 'テスト表示：この端末だけに保存しました';
-    btn.disabled = false;
-    return;
-  }
   try {
     await api('/api/games/' + encodeURIComponent(dlgGame.id) + '/comments', {
       method: 'POST',
