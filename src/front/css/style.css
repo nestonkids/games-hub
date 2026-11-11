@@ -35,12 +35,17 @@ main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 32px; }
 .card:active { transform: translateY(2px); }
 .card-button { all: unset; cursor: pointer; display: flex; flex-direction: column; flex: 1; }
 .card-button:focus-visible { outline: 4px solid var(--ink); outline-offset: -4px; }
-.card-thumb { aspect-ratio: 4 / 3; background: color-mix(in srgb, var(--c) 30%, #fff); object-fit: cover; width: 100%; display: block; }
+.card-thumb-wrap { position: relative; aspect-ratio: 4 / 3; background: color-mix(in srgb, var(--c) 30%, #fff); overflow: hidden; }
+.card-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-thumb:not([src]) { display: none; } /* 画像がなければ非表示にして、下のアイコンを見せる */
+.card-thumb-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 2.6rem; opacity: .5; }
 .card-body { padding: 12px 16px 18px; }
 .card-title { margin: 0 0 4px; font-size: 1.2rem; }
 .card-author { display: inline-block; margin: 0 0 8px; padding: 2px 10px; font-size: .8rem; font-weight: bold;
   color: #fff; background: var(--c); border-radius: 999px; }
 .card-desc { margin: 0; font-size: .9rem; line-height: 1.6; }
+.card-desc-empty { color: color-mix(in srgb, var(--ink) 45%, #fff); font-style: italic; }
 
 .site-footer { display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 24px; font-size: .85rem; color: var(--ink); }

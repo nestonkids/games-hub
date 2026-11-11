@@ -21,12 +21,17 @@ input:not([type=checkbox]):not([type=radio]), textarea, select { display: block;
 .items .main { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
 .items .meta { font-size: .8rem; color: #7b708f; }
 .items .btns { display: flex; gap: 6px; }
-.game-form { margin: 12px 0; padding: 12px; background: #f6f3fa; border-radius: 8px; }
+.list-thumb { width: 64px; height: 48px; flex: 0 0 auto; object-fit: cover; border-radius: 6px; background: #eee; }
+.list-thumb:not([src]) { visibility: hidden; }
+.thumb-preview { display: block; max-width: 240px; max-height: 180px; margin: -6px 0 10px; border-radius: 8px; object-fit: cover; }
+.game-form { padding: 0; }
 .game-form h3 { margin: 0 0 8px; }
 .status { min-height: 1.4em; font-weight: bold; }
 .tag-hidden { color: #c0392b; font-size: .8rem; }
 .comment-status { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 8px; font-size: .75rem; font-weight: bold; }
 .comment-status.pending { color: #a9720a; background: #fbead0; }
 .comment-status.approved { color: #2e8b57; background: #e2f3e8; }
-.game-comments { flex: 1 1 100%; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #d8d0ea; }
-.game-comments .items li { padding: 6px 0; }
+dialog.modal { width: calc(100% - 32px); max-width: 560px; max-height: calc(100% - 64px); overflow-y: auto; border: none; border-radius: 12px; padding: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.2); }
+dialog.modal::backdrop { background: rgba(0,0,0,.4); }
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.modal-head h3 { margin: 0; }

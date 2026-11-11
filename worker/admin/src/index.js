@@ -38,6 +38,7 @@ async function route(request, env) {
     if (parts.length === 4 && m === 'DELETE') return adminDeleteGame(env, parts[3]);
   }
   if (parts[2] === 'scratch' && parts.length === 4 && m === 'GET') return adminScratchInfo(parts[3]);
+  if (parts[2] === 'game-json' && parts.length === 3 && m === 'GET') return adminGameJsonInfo(url.searchParams.get('url'));
   if (parts[2] === 'comments') {
     if (parts.length === 3 && m === 'GET') return adminListComments(env, url.searchParams.get('status'), url.searchParams.get('game_id'));
     if (parts.length === 5 && parts[4] === 'approve' && m === 'POST') return adminApprove(env, parts[3]);
@@ -67,11 +68,12 @@ async function adminSaveGame(request, env, existingId) {
   }
   const dup = await env.DB.prepare('SELECT 1 FROM games WHERE id = ?').bind(g.id).first();
   if (dup) throw new HttpError(409, 'このIDはすでに使われています');
-  const max = await env.DB.prepare('SELECT COALESCE(MAX(sort_order), 0) AS m FROM games').first();
+  // 新しいゲームが一覧の先頭に来るよう、既存の最小値より小さいsort_orderを入れる
+  const min = await env.DB.prepare('SELECT COALESCE(MIN(sort_order), 1) AS m FROM games').first();
   await env.DB.prepare(
     `INSERT INTO games (id, title, author, description, thumbnail, type, scratch_id, url, sort_order, visible, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(g.id, g.title, g.author, g.description, g.thumbnail, g.type, g.scratchId, g.url, max.m + 1, g.visible, now()).run();
+  ).bind(g.id, g.title, g.author, g.description, g.thumbnail, g.type, g.scratchId, g.url, min.m - 1, g.visible, now()).run();
   return json({ ok: true }, 201);
 }
 
@@ -102,9 +104,53 @@ async function adminScratchInfo(id) {
   return json({
     title: clean(data.title, 60),
     author: clean(data.author && data.author.username, 40),
-    description: clean(instructions || data.description, 300),
+    description: cleanMultiline(instructions || data.description, 300),
     thumbnail: `https://cdn2.scratch.mit.edu/get_image/project/${id}_480x360.png`,
   });
+}
+
+// 生徒が公開したゲームのURL直下にある game.json を取得し、タイトル・作者・サムネイルを自動入力する
+// (sample-web-game/AGENTS.md で定めている game.json の形式: { title, author, thumbnail })
+async function adminGameJsonInfo(rawUrl) {
+  const gameJsonUrl = buildGameJsonUrl(rawUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let res;
+  try {
+    res = await fetch(gameJsonUrl, { signal: controller.signal });
+  } catch {
+    throw new HttpError(502, 'game.jsonの取得中にエラーが起きました(URLが正しいか確認してください)');
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (res.status === 404) throw new HttpError(404, 'game.jsonが見つかりません(ゲームのURL直下に置かれているか確認してください)');
+  if (!res.ok) throw new HttpError(502, 'game.jsonを取得できませんでした');
+  const text = await res.text();
+  if (text.length > 50000) throw new HttpError(413, 'game.jsonが大きすぎます');
+  let data;
+  try { data = JSON.parse(text); } catch { throw new HttpError(400, 'game.jsonの内容がJSONとして読み取れません'); }
+  let thumbnail = '';
+  if (data.thumbnail) {
+    try { thumbnail = new URL(String(data.thumbnail), gameJsonUrl).toString(); } catch { /* 不正なら空のまま */ }
+  }
+  return json({
+    title: clean(data.title, 60),
+    author: clean(data.author, 40),
+    thumbnail: /^https:\/\//.test(thumbnail) ? thumbnail : '',
+  });
+}
+
+// ゲームのURLから game.json の場所を組み立てる。
+// 末尾がファイル名(index.html など)でなければディレクトリとみなして "/" を補う。
+function buildGameJsonUrl(rawUrl) {
+  const raw = String(rawUrl || '').trim();
+  if (!/^https:\/\/\S{1,500}$/.test(raw)) throw new HttpError(400, 'ゲームのURLは https:// から始めてください');
+  let u;
+  try { u = new URL(raw); } catch { throw new HttpError(400, 'ゲームのURLが正しくありません'); }
+  const segments = u.pathname.split('/');
+  const last = segments[segments.length - 1];
+  if (!(last && last.includes('.')) && !u.pathname.endsWith('/')) u.pathname += '/';
+  return new URL('game.json', u).toString();
 }
 
 // ---------- コメント ----------
@@ -169,7 +215,7 @@ function validateGame(raw, existingId) {
   return {
     id, title, type,
     author: clean(raw.author, 40),
-    description: clean(raw.description, 300),
+    description: cleanMultiline(raw.description, 300),
     thumbnail, scratchId: type ? scratchId : '', url: type ? '' : url,
     visible: raw.visible === false || raw.visible === 0 ? 0 : 1,
   };
@@ -183,6 +229,14 @@ function toGame(r) {
 
 function clean(v, max) {
   return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
+}
+// 説明欄など複数行を許したい項目用。改行(\n)だけは残し、それ以外の制御文字は空白に置き換える。
+function cleanMultiline(v, max) {
+  return String(v == null ? '' : v)
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f]/g, ' ')
+    .trim()
+    .slice(0, max);
 }
 function now() { return Math.floor(Date.now() / 1000); }
 

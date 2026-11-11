@@ -3,10 +3,13 @@
 const API = (window.HUB_CONFIG && window.HUB_CONFIG.apiBase || '').replace(/\/+$/, '');
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status');
+const formStatusEl = $('form-status');
 let games = [];
 let editingId = null; // null = 新規追加
 
 function say(msg) { statusEl.textContent = msg || ''; }
+// ゲーム追加・編集モーダル内で出すメッセージ(モーダル表示中は背面のstatusEl が見えないため)
+function sayForm(msg) { formStatusEl.textContent = msg || ''; }
 
 async function api(path, method = 'GET', body) {
   const headers = { 'Content-Type': 'application/json' };
@@ -125,10 +128,12 @@ function renderGames() {
     if (!g.visible) title.appendChild(el('span', '非公開', 'tag-hidden'));
     main.append(title, el('div', g.author || '作者なし', 'meta'));
 
-    const commentsPanel = el('div', null, 'game-comments');
-    commentsPanel.hidden = true;
-    const commentsList = el('ul', null, 'items');
-    commentsPanel.appendChild(commentsList);
+    const thumb = document.createElement('img');
+    thumb.className = 'list-thumb';
+    thumb.alt = '';
+    thumb.loading = 'lazy';
+    if (g.thumbnail) thumb.src = g.thumbnail;
+    thumb.onerror = () => { thumb.removeAttribute('src'); };
 
     const btns = el('div', null, 'btns');
     btns.append(
@@ -140,8 +145,9 @@ function renderGames() {
       }),
       btn('編集', async () => openForm(g)),
       btn('💬 コメント', async () => {
-        commentsPanel.hidden = !commentsPanel.hidden;
-        if (!commentsPanel.hidden) await loadGameComments(g.id, commentsList);
+        commentsDialogTitle.textContent = g.title + ' のコメント';
+        commentsDialog.showModal();
+        await loadGameComments(g.id, commentsDialogList);
       }),
       btn('削除', async () => {
         if (!confirm('「' + g.title + '」と、そのいいね・コメントを削除しますか？')) return;
@@ -149,7 +155,7 @@ function renderGames() {
         loadGames();
       }, 'danger')
     );
-    li.append(main, btns, commentsPanel);
+    li.append(thumb, main, btns);
     list.appendChild(li);
   });
 }
@@ -165,6 +171,27 @@ async function move(i, d) {
 const form = $('game-form');
 // form.id など、フォーム自身のプロパティと名前が重ならないよう elements 経由で読む
 const F = form.elements;
+const gameDialog = $('game-dialog');
+const commentsDialog = $('comments-dialog');
+const commentsDialogTitle = $('comments-dialog-title');
+const commentsDialogList = $('comments-dialog-list');
+const thumbPreview = $('thumb-preview');
+
+// サムネイルURLの入力に合わせてプレビュー画像を更新する
+function updateThumbPreview() {
+  const url = F.thumbnail.value.trim();
+  if (!url) { thumbPreview.hidden = true; thumbPreview.removeAttribute('src'); return; }
+  thumbPreview.src = url;
+  thumbPreview.hidden = false;
+}
+thumbPreview.addEventListener('error', () => { thumbPreview.hidden = true; });
+F.thumbnail.addEventListener('input', updateThumbPreview);
+
+// モーダルの外側(背景)をクリックしたら閉じる
+[gameDialog, commentsDialog].forEach((dlg) => {
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+});
+$('comments-dialog-close').addEventListener('click', () => commentsDialog.close());
 
 function gameUrl(g) {
   if (g.type === 'scratch') return 'https://scratch.mit.edu/projects/' + g.scratchId + '/';
@@ -181,25 +208,37 @@ function openForm(g) {
     F.description.value = g.description; F.thumbnail.value = g.thumbnail;
     F.visible.checked = g.visible;
   }
-  form.hidden = false;
-  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  updateThumbPreview();
+  sayForm('');
+  gameDialog.showModal();
 }
 $('new-game').addEventListener('click', () => openForm(null));
-$('game-cancel').addEventListener('click', () => { form.hidden = true; });
+$('game-cancel').addEventListener('click', () => gameDialog.close());
 
-// URLがScratch/TurboWarpの作品ページなら、そこからタイトル・作者・サムネイル・説明を自動入力する
-$('fetch-scratch').addEventListener('click', async () => {
+// ゲームのURLから情報を自動入力する。
+// Scratch/TurboWarpの作品URLならそちらのAPIを、それ以外はURL直下のgame.json
+// (sample-web-game/AGENTS.md参照)を見にいく。
+$('fetch-info').addEventListener('click', async () => {
   const url = F.url.value.trim();
-  const m = /^https:\/\/(?:www\.)?(?:scratch\.mit\.edu\/projects|turbowarp\.org)\/(\d+)/.exec(url);
-  if (!m) { say('Scratch または TurboWarp の作品URLを入力してから押してください'); return; }
+  if (!/^https:\/\//.test(url)) { sayForm('ゲームのURL(https://…)を入力してから押してください'); return; }
+  const scratchMatch = /^https:\/\/(?:www\.)?(?:scratch\.mit\.edu\/projects|turbowarp\.org)\/(\d+)/.exec(url);
   try {
-    const info = await api('/api/admin/scratch/' + m[1]);
-    if (info.title) F.title.value = info.title;
-    if (info.author) F.author.value = info.author;
-    if (info.description) F.description.value = info.description;
-    if (info.thumbnail) F.thumbnail.value = info.thumbnail;
-    say('Scratchから取得しました');
-  } catch (e) { say(e.message); }
+    if (scratchMatch) {
+      const info = await api('/api/admin/scratch/' + scratchMatch[1]);
+      if (info.title) F.title.value = info.title;
+      if (info.author) F.author.value = info.author;
+      if (info.description) F.description.value = info.description;
+      if (info.thumbnail) F.thumbnail.value = info.thumbnail;
+      sayForm('Scratchから取得しました');
+    } else {
+      const info = await api('/api/admin/game-json?url=' + encodeURIComponent(url));
+      if (info.title) F.title.value = info.title;
+      if (info.author) F.author.value = info.author;
+      if (info.thumbnail) F.thumbnail.value = info.thumbnail;
+      sayForm('game.jsonから取得しました');
+    }
+    updateThumbPreview();
+  } catch (e) { sayForm(e.message); }
 });
 
 form.addEventListener('submit', async (e) => {
@@ -212,12 +251,11 @@ form.addEventListener('submit', async (e) => {
   try {
     if (editingId) await api('/api/admin/games/' + editingId, 'PUT', body);
     else await api('/api/admin/games', 'POST', body);
-    form.hidden = true;
+    gameDialog.close();
     say('保存しました');
     loadGames();
-  } catch (err) { say(err.message); }
+  } catch (err) { sayForm(err.message); }
 });
 
-if (!API) say('js/config.js の apiBase が空です。APIのURLを設定してください。');
 loadComments();
 loadGames();

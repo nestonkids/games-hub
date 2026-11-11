@@ -1,0 +1,9 @@
+name = "neston-games-hub-admin"
+pages_build_output_dir = "."
+compatibility_date = "2025-01-01"
+
+# 管理API(worker/admin)をService Binding経由で呼ぶ。
+# これにより管理画面とAPIが同一オリジンになり、Cloudflare Accessのログインが1回で済む。
+[[services]]
+binding = "ADMIN_API"
+service = "neston-games-hub-admin-api"

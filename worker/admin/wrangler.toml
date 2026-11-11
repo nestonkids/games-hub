@@ -4,8 +4,8 @@ compatibility_date = "2025-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "neston-hub-db"
-database_id = "cb5bd148-5069-46cc-aa6e-05ccce26d8a9"
+database_name = "neston-games-hub-db"
+database_id = "a9980bae-50aa-42f4-9b7f-f768ce51fc85"
 
 [vars]
 # APIを呼んでよいサイトのURL(カンマ区切り)。管理画面(Cloudflare Pages)のURLに合わせて直すこと

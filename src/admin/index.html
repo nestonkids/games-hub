@@ -24,22 +24,6 @@
         <div class="row">
           <button id="new-game" type="button">＋ ゲームを追加</button>
         </div>
-        <form id="game-form" class="game-form" hidden>
-          <h3 id="game-form-title"></h3>
-          <label>ゲームのURL(https://…。ScratchまたはTurboWarpの作品URLなら自動判定します) <input name="url" required></label>
-          <div class="row">
-            <button type="button" id="fetch-scratch">Scratch/TurboWarpの情報を取得</button>
-          </div>
-          <label>タイトル <input name="title" required maxlength="60"></label>
-          <label>作者 <input name="author" maxlength="40"></label>
-          <label>説明 <textarea name="description" rows="2" maxlength="300"></textarea></label>
-          <label>サムネイル(assets/thumbs/xxx.png か https://…) <input name="thumbnail"></label>
-          <label class="inline"><input type="checkbox" name="visible" checked> 公開する</label>
-          <div class="row">
-            <button type="submit">保存</button>
-            <button type="button" id="game-cancel">キャンセル</button>
-          </div>
-        </form>
         <ul id="game-list" class="items"></ul>
       </section>
 
@@ -53,6 +37,35 @@
     </div>
 
     <p id="status" class="status" aria-live="polite"></p>
+
+    <dialog id="game-dialog" class="modal">
+      <form id="game-form" class="game-form">
+        <h3 id="game-form-title"></h3>
+        <label>ゲームのURL <input name="url" required></label>
+        <div class="row">
+          <button type="button" id="fetch-info">ゲーム情報を取得</button>
+        </div>
+        <label>タイトル <input name="title" required maxlength="60"></label>
+        <label>作者 <input name="author" maxlength="40"></label>
+        <label>説明 <textarea name="description" rows="6" maxlength="300"></textarea></label>
+        <label>サムネイルURL <input name="thumbnail"></label>
+        <img id="thumb-preview" class="thumb-preview" alt="サムネイル プレビュー" hidden>
+        <label class="inline"><input type="checkbox" name="visible" checked> 公開する</label>
+        <p id="form-status" class="status" aria-live="polite"></p>
+        <div class="row">
+          <button type="submit">保存</button>
+          <button type="button" id="game-cancel">キャンセル</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="comments-dialog" class="modal">
+      <div class="modal-head">
+        <h3 id="comments-dialog-title"></h3>
+        <button type="button" id="comments-dialog-close">閉じる</button>
+      </div>
+      <ul id="comments-dialog-list" class="items"></ul>
+    </dialog>
   </main>
 
   <script src="js/config.js"></script>

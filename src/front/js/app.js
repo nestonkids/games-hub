@@ -104,22 +104,30 @@ function createCard(game) {
     el.addEventListener('click', () => openModal(game));
   }
 
+  // サムネイルがない・読み込めないときは、色付きの枠にアイコンを表示する
+  const thumbWrap = document.createElement('div');
+  thumbWrap.className = 'card-thumb-wrap';
   const img = document.createElement('img');
   img.className = 'card-thumb';
-  img.src = game.thumbnail || '';
+  if (game.thumbnail) img.src = game.thumbnail;
   img.alt = game.title + ' のサムネイル';
   img.loading = 'lazy';
-  img.onerror = () => { img.removeAttribute('src'); }; // 画像がなければ灰色の枠のまま
+  img.onerror = () => { img.removeAttribute('src'); };
+  const thumbIcon = textEl('span', 'card-thumb-icon', '🎮');
+  thumbIcon.setAttribute('aria-hidden', 'true');
+  thumbWrap.append(img, thumbIcon);
 
   const body = document.createElement('div');
   body.className = 'card-body';
+  const desc = textEl('p', 'card-desc', game.description || 'せつめいはまだありません');
+  if (!game.description) desc.classList.add('card-desc-empty');
   body.append(
     textEl('h2', 'card-title', game.title),
-    textEl('p', 'card-author', 'つくった人: ' + game.author),
-    textEl('p', 'card-desc', game.description)
+    textEl('p', 'card-author', 'つくった人: ' + (game.author || 'ひみつ')),
+    desc
   );
 
-  el.append(img, body);
+  el.append(thumbWrap, body);
   li.appendChild(el);
   if (game.comments !== undefined) li.appendChild(createActions(game)); // API経由のときだけ表示
   return li;
