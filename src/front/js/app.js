@@ -115,7 +115,7 @@ function createCard(game) {
   img.onerror = () => { img.removeAttribute('src'); };
   const thumbIcon = textEl('span', 'card-thumb-icon', '🎮');
   thumbIcon.setAttribute('aria-hidden', 'true');
-  thumbWrap.append(img, thumbIcon);
+  thumbWrap.append(thumbIcon, img); // imgを後に置き、読み込めたときはアイコンの上に重なるようにする
 
   const body = document.createElement('div');
   body.className = 'card-body';
